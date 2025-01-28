@@ -1,17 +1,12 @@
 "use client";
 import React, { useState, useMemo, useEffect } from 'react';
-import events from './eventdata';
+import events from '../data/eventdata';
 import NavBar from './Navbar';
+import todos from '../data/tododata';
 
 function WeekView({ selectedDate: initialDate, onBack, onDay, view }) {
     const [currentDate, setCurrentDate] = useState(new Date(initialDate));
     const [now, setNow] = useState(new Date());
-
-    const navigateWeek = (direction) => {
-        const newDate = new Date(currentDate);
-        newDate.setDate(currentDate.getDate() + (direction * 7));
-        setCurrentDate(newDate);
-    };
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -19,6 +14,12 @@ function WeekView({ selectedDate: initialDate, onBack, onDay, view }) {
         }, 1000);
         return () => clearInterval(timer);
     }, []);
+
+    const navigateWeek = (direction) => {
+        const newDate = new Date(currentDate);
+        newDate.setDate(currentDate.getDate() + (direction * 7));
+        setCurrentDate(newDate);
+    };
 
     // Compute Week Range
     const weekRange = useMemo(() => {
@@ -60,6 +61,15 @@ function WeekView({ selectedDate: initialDate, onBack, onDay, view }) {
         return dates;
     }, [currentDate]);
 
+    const weekTodos = useMemo(() => {
+        return todos.filter(todo => {
+            const todoDate = new Date(todo.date);
+            return weekDates.some(date => 
+                date.toDateString() === todoDate.toDateString()
+            );
+        });
+    }, [weekDates]);
+
     const handleDateChange = (date) => {
         setCurrentDate(date);
     };
@@ -88,29 +98,30 @@ function WeekView({ selectedDate: initialDate, onBack, onDay, view }) {
         return adjustedHours * 60 + (minutes || 0);
     };
 
-    const findEventColumns = (dayEvents) => {
-        if (dayEvents.length === 0) return [];
+    const findEventColumns = (dayItems) => {
+        if (dayItems.length === 0) return [];
       
-        const sortedEvents = [...dayEvents].sort((a, b) =>
-          timeToMinutes(a.start) - timeToMinutes(b.start)
+        const sortedItems = [...dayItems].sort((a, b) =>
+          timeToMinutes(a.start || a.time) - timeToMinutes(b.start || b.time)
         );
       
-        sortedEvents.forEach(event => {
-          const eventStart = timeToMinutes(event.start);
-          const eventEnd = timeToMinutes(event.end);
+        sortedItems.forEach(item => {
+          const itemStart = timeToMinutes(item.start || item.time);
+          const itemEnd = timeToMinutes(item.end || item.time.split(' - ')[1]);
       
-          const overlaps = sortedEvents.filter(existingEvent => {
-            const existingStart = timeToMinutes(existingEvent.start);
-            const existingEnd = timeToMinutes(existingEvent.end);
-            return !(eventEnd <= existingStart || eventStart >= existingEnd);
+          const overlaps = sortedItems.filter(existingItem => {
+            const existingStart = timeToMinutes(existingItem.start || existingItem.time);
+            const existingEnd = timeToMinutes(existingItem.end || existingItem.time.split(' - ')[1]);
+            return !(itemEnd <= existingStart || itemStart >= existingEnd);
           });
       
-          event.totalOverlaps = overlaps.length;
-          event.column = overlaps.findIndex(e => e === event);
+          item.totalOverlaps = overlaps.length;
+          item.column = overlaps.findIndex(e => e === item);
         });
       
-        return sortedEvents;
+        return sortedItems;
     };
+
 
     const currentTimeIndicator = useMemo(() => {
         const currentHour = now.getHours();
@@ -180,11 +191,22 @@ function WeekView({ selectedDate: initialDate, onBack, onDay, view }) {
                                     timeToMinutes(`${now.getHours() % 12 || 12}:${now.getMinutes()} ${now.getHours() >= 12 ? 'PM' : 'AM'}`);
 
                                 // Get events for this date
-                                const dayEvents = findEventColumns(
-                                    weekEvents.filter(event => 
-                                        new Date(event.date).toDateString() === date.toDateString()
-                                    )
+                                const dayEvents = weekEvents.filter(event => 
+                                    new Date(event.date).toDateString() === date.toDateString()
                                 );
+                                const dayTodos = weekTodos.filter(todo => 
+                                    new Date(todo.date).toDateString() === date.toDateString()
+                                );
+
+                                const dayItems = findEventColumns([
+                                    ...dayEvents,
+                                    ...dayTodos.map(todo => ({
+                                        ...todo,
+                                        isTodo: true, // Flag to distinguish todos
+                                        start: todo.time.split(' - ')[0],
+                                        end: todo.time.split(' - ')[1]
+                                    }))
+                                ]);
 
                                 return (
                                     <div 
@@ -205,43 +227,45 @@ function WeekView({ selectedDate: initialDate, onBack, onDay, view }) {
                                             </div>
                                         )}
                                         
-                                        {dayEvents.map(event => {
-                                            const startMinutes = timeToMinutes(event.start);
+                                        {dayItems.map(item => {
+                                            const startMinutes = timeToMinutes(item.start || item.time);
                                             const currentSlotMinutes = timeToMinutes(time);
                                             
-                                            // Only render event if it starts in this time slot
                                             if (Math.floor(startMinutes / 60) === Math.floor(currentSlotMinutes / 60)) {
-                                                const duration = timeToMinutes(event.end) - startMinutes;
+                                                const duration = timeToMinutes(item.end || item.time.split(' - ')[1]) - startMinutes;
                                                 const heightPercentage = (duration / 60) * 100;
                                                 const topOffset = (startMinutes % 60) / 60 * 100;
                                                 
                                                 return (
                                                     <div
-                                                        key={event.id}
+                                                        key={`${item.isTodo ? 't' : 'e'}-${item.id || item.title}-${date.toDateString()}-${time}`} // Unique key with 't' for todo and 'e' for event
                                                         className={`
                                                             absolute 
-                                                            ${event.color} 
+                                                            ${item.color} 
                                                             text-gray-200 
                                                             rounded-lg 
                                                             shadow-lg 
                                                             p-1 
                                                             border-2 
-                                                            border-gray-900
+                                                            ${item.isTodo ? 'border-dashed border-gray-400' : 'border-gray-900'}
                                                             overflow-hidden
+                                                            ${item.isTodo && item.status === 'Complete' ? 'opacity-50' : 'opacity-90'}
                                                         `}
                                                         style={{
                                                             top: `${topOffset}%`,
                                                             height: `${heightPercentage}%`,
-                                                            width: `calc(${100 / event.totalOverlaps}% - 4px)`,
-                                                            left: `calc(${(event.column / event.totalOverlaps) * 100}% + 2px)`,
-                                                            opacity: 0.9,
+                                                            width: `calc(${100 / item.totalOverlaps}% - 4px)`,
+                                                            left: `calc(${(item.column / item.totalOverlaps) * 100}% + 2px)`,
                                                         }}
                                                     >
                                                         <div className="font-semibold text-xs truncate">
-                                                            {event.title}
+                                                            {item.isTodo ? '📝 ' : ''}{item.title}
                                                         </div>
                                                         <div className="text-xs opacity-75 truncate">
-                                                            {event.participants} 👥
+                                                            {item.isTodo ? 
+                                                                (item.status === 'Complete' ? '✅' : '⏳') :
+                                                                `${item.participants} 👥`
+                                                            }
                                                         </div>
                                                     </div>
                                                 );

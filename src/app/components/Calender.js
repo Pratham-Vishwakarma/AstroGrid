@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import DayView from './DayView';
 import EventView from './EventView';
-import events from './eventdata';
+import events from '../data/eventdata';
 import SideBar from './SideBar';
 import Navbar from './Navbar';
 import WeekView from './WeekView';

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, Edit, Trash } from 'lucide-react';
-import todos from './tododata'; // Assuming you have your todo data in tododata.js
+import todos from '../data/tododata'; // Assuming you have your todo data in tododata.js
 
 const TodoView = ({ selectedDate, changeWork }) => {
   const [todosState, setTodosState] = useState([]);

@@ -1,7 +1,8 @@
 "use client";
 import React, { useState, useMemo, useEffect } from 'react';
-import events from './eventdata';
+import events from '../data/eventdata';
 import Navbar from './Navbar';
+import todos from '../data/tododata';
 
 const DayView = ({ selectedDate, onBack, view }) => {
     const [currentDate, setCurrentDate] = useState(selectedDate);
@@ -15,6 +16,10 @@ const DayView = ({ selectedDate, onBack, view }) => {
 
       return () => clearInterval(timer);
     }, []);
+
+    const dayTodos = todos.filter(todo => 
+      new Date(todo.date).toDateString() === currentDate.toDateString()
+  );
 
     const handleDateChange = (date) => {
       setCurrentDate(date);
@@ -67,30 +72,46 @@ const DayView = ({ selectedDate, onBack, view }) => {
     };
   
     const findEventColumns = () => {
-      if (dayEvents.length === 0) return [];
+      const allItems = [
+          ...dayEvents.map(event => ({
+              ...event,
+              isTodo: false,
+              start: event.start,
+              end: event.end
+          })),
+          ...dayTodos.map(todo => ({
+              ...todo,
+              isTodo: true,
+              start: todo.time.split(' - ')[0],
+              end: todo.time.split(' - ')[1]
+          }))
+      ];
+  
+      if (allItems.length === 0) return [];
     
-      const sortedEvents = [...dayEvents].sort((a, b) =>
-        timeToMinutes(a.start) - timeToMinutes(b.start)
+      const sortedItems = [...allItems].sort((a, b) =>
+          timeToMinutes(a.start) - timeToMinutes(b.start)
       );
     
-      sortedEvents.forEach((event, index) => {
-        const eventStart = timeToMinutes(event.start);
-        const eventEnd = timeToMinutes(event.end);
-    
-        const overlaps = sortedEvents.filter(existingEvent => {
-          const existingStart = timeToMinutes(existingEvent.start);
-          const existingEnd = timeToMinutes(existingEvent.end);
-          return !(eventEnd <= existingStart || eventStart >= existingEnd);
-        });
-    
-        event.totalOverlaps = overlaps.length;
-        event.column = overlaps.findIndex(e => e === event);
+      sortedItems.forEach((item) => {
+          const itemStart = timeToMinutes(item.start);
+          const itemEnd = timeToMinutes(item.end);
+      
+          const overlaps = sortedItems.filter(existingItem => {
+              const existingStart = timeToMinutes(existingItem.start);
+              const existingEnd = timeToMinutes(existingItem.end);
+              return !(itemEnd <= existingStart || itemStart >= existingEnd);
+          });
+      
+          item.totalOverlaps = overlaps.length;
+          item.column = overlaps.findIndex(e => e === item);
       });
     
-      return sortedEvents;
-    };    
+      return sortedItems;
+  };    
   
-    const processedEvents = findEventColumns();
+  // Then replace processedItems with:
+  const processedItems = findEventColumns();
 
     // Calculate current time position and visibility
     const currentTimeIndicator = useMemo(() => {
@@ -128,38 +149,50 @@ const DayView = ({ selectedDate, onBack, view }) => {
               <div className="h-full border-l border-gray-600"></div>
             </div>
                 
-            {processedEvents.map(event => (
-              <div key={event.id}>
-                <div 
-                  className={`
-                    absolute
-                    ${event.color} 
-                    text-gray-200 rounded-lg 
-                    shadow-lg p-1 border-2 border-gray-900
-                  `}
-                  style={{
-                    top: `${calculateEventPosition(event.start)}%`,
-                    height: `calc(${calculateEventHeight(event.start, event.end)}% - 0.5px)`,
-                    width: event.totalOverlaps === 1
-                      ? `calc(${(1 / event.totalOverlaps) * 100}% - 81px)` //No Overlaps
-                      : `calc(${(1 / event.totalOverlaps) * 100}% - (${(80 / event.totalOverlaps)}px + 1px))`, //Overlaps
-                    left: event.totalOverlaps === 1
-                      ? `calc(${(event.column / event.totalOverlaps) * 100}% + 81px)`
-                      : `calc(${(event.column / event.totalOverlaps) * 100}% - ${(80 / event.totalOverlaps) * event.column}px + 81px)`,
-                    opacity: 0.9,
-                  }}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className={`${ event.totalOverlaps === 1 ? 'space-x-2 flex items-center' : "" }`}>
-                      <h3 className="font-semibold text-sm">{event.title}</h3>
-                      <p className="text-xs opacity-75">
-                        {event.start.replace(/\s[APap][Mm]/, '')} - {event.end.replace(/\s[APap][Mm]/, '')}
-                      </p>
-                    </div>
-                    <span className="bg-white bg-opacity-20 rounded-full px-2 py-0.5 text-xs">
-                      {event.participants} 👥
-                    </span>
+            {processedItems.map(item => (
+              <div
+                key={`${item.isTodo ? 't' : 'e'}-${item.id || item.title}-${currentDate.toDateString()}-${item.time}`} // Unique key with 't' for todo and 'e' for event
+                className={`
+                  absolute
+                  ${item.color} 
+                  text-gray-200 
+                  rounded-lg 
+                  shadow-lg 
+                  p-1 
+                  border-2 
+                  ${item.isTodo ? 'border-dashed border-gray-400 hover:border-white' : 'border-gray-900'}
+                  ${item.isTodo && item.status === 'Complete' ? 'opacity-50' : 'opacity-90'}
+                  transition-all duration-200 ease-in-out
+                  hover:scale-[1.01]
+              `}
+                style={{
+                  top: `${calculateEventPosition(item.start)}%`,
+                  height: `calc(${calculateEventHeight(item.start, item.end)}% - 0.5px)`,
+                  width: item.totalOverlaps === 1
+                    ? `calc(${(1 / item.totalOverlaps) * 100}% - 81px)` //No Overlaps
+                    : `calc(${(1 / item.totalOverlaps) * 100}% - (${(80 / item.totalOverlaps)}px + 1px))`, //Overlaps
+                  left: item.totalOverlaps === 1
+                    ? `calc(${(item.column / item.totalOverlaps) * 100}% + 81px)`
+                    : `calc(${(item.column / item.totalOverlaps) * 100}% - ${(80 / item.totalOverlaps) * item.column}px + 81px)`,
+                    opacity: item.isTodo ? (item.status === 'Complete' ? 0.4 : 0.7) : 0.9,
+                }}
+              >
+                <div className="flex justify-between items-start">
+                  <div className={`${item.totalOverlaps === 1 ? 'space-x-2 flex items-center' : ''}`}>
+                    <h3 className="font-semibold text-sm">
+                      {item.isTodo ? '📝 ' : ''}{item.title}
+                    </h3>
+                    <p className="text-xs opacity-75">
+                      {(item.start || item.time).replace(/\s[APap][Mm]/, '')} - 
+                      {(item.end || item.time.split(' - ')[1]).replace(/\s[APap][Mm]/, '')}
+                    </p>
                   </div>
+                  <span className="bg-white bg-opacity-20 rounded-full px-2 py-0.5 text-xs">
+                    {item.isTodo ? 
+                      (item.status === 'Complete' ? '✅' : '⏳') :
+                      `${item.participants} 👥`
+                    }
+                  </span>
                 </div>
               </div>
             ))}

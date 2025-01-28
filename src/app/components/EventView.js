@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { Clock, Users, FileText } from 'lucide-react';
-import events from './eventdata';
+import events from '../data/eventdata';
 
 const EventView = ({ selectedDate, changeWork }) => {
   // Filter events for the selected date
