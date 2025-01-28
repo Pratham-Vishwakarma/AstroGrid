@@ -4,11 +4,22 @@ import DayView from './DayView';
 import EventView from './EventView';
 import events from './eventdata';
 import SideBar from './SideBar';
+import Navbar from './Navbar';
+import WeekView from './WeekView';
+import TodoView from './TodoView';
+import Help from './Help';
 
 const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [view, setView] = useState('calendar');
+  const [work, setWork] = useState('events');
+  const [help, setHelp] = useState('nohelp');
+
+  const handleDayClick = (date) => {
+    setSelectedDate(date); // Update the selected date
+    setView('day'); // Switch to the DayView
+  };
 
   const daysInMonth = new Date(
     currentDate.getFullYear(), 
@@ -106,6 +117,7 @@ const Calendar = () => {
           onDoubleClick={() => {
             setView('day');
           }}
+          
           className={`
             flex flex-col font-semibold
             h-16 border-2 border-opacity-40 border-gray-600 
@@ -138,65 +150,62 @@ const Calendar = () => {
 
   return (
     <>
-    <div className="flex overflow-hidden">
-      <SideBar setCalender={() => setView('calendar')} setDay={() => setView('day')}/>
-      <div className="w-2/3">
-        {view === 'calendar' && (
-          <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-900 via-black to-gray-900 text-gray-200 p-4 space-y-4">
-            <div className="flex justify-end items-center gap-3">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold">
-                  {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-                </h2>
-                <p className="text-gray-400 text-sm">
-                  {selectedDate.toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </p>
+      <div className="flex overflow-hidden">
+        <SideBar setCalender={() => setView('calendar')} setDay={() => setView('day')} setWeek={()=>setView('week')} setHelp={() => setHelp('help')}/>
+        <div className="w-2/3">
+          {view === 'calendar' && (
+            <>
+              <Navbar 
+                currentView={view}
+                currentDate={currentDate}
+                selectedDate={selectedDate}
+                onChangeMonth={changeMonth}
+                monthNames={monthNames}
+              />
+              <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-900 via-black to-gray-900 text-gray-200 p-4 space-y-4">
+                <div className='h-14'></div>              
+                <div className="grid grid-cols-7 text-center font-semibold text-gray-400 ml-12">
+                  {weekdays.map(day => (
+                    <div key={day} className="p-2">{day}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-2 flex-1 ml-12">
+                  {renderCalendarDays()}
+                </div>
               </div>
-              <button 
-                onClick={() => changeMonth(-1)}
-                className="hover:bg-gray-800 p-2 rounded-full transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button 
-                onClick={() => changeMonth(1)}
-                className="hover:bg-gray-800 p-2 rounded-full transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
+            </>
+          )}
+
+          {view === 'day' && (
+            <div className='bg-gradient-to-br from-black via-gray-900 to-black text-gray-200'>
+              <DayView selectedDate={selectedDate} onBack={() => setView('calendar')} view={view} />
             </div>
-            
-              <div className="grid grid-cols-7 text-center font-semibold text-gray-400 ml-12">
-                {weekdays.map(day => (
-                  <div key={day} className="p-2">{day}</div>
-                ))}
-              </div>
+          )}
 
-              <div className="grid grid-cols-7 gap-2 flex-1 ml-12">
-                {renderCalendarDays()}
-              </div>
-          </div>
+          {view === 'week' && (
+            <div className='bg-gradient-to-br from-black via-gray-900 to-black text-gray-200'>
+              <WeekView selectedDate={selectedDate} onBack={() => setView('calendar')} onDay={handleDayClick} view={view} />
+            </div>
+          )}
+
+        </div>
+
+        <div className='w-1/3 h-screen'>
+          {work === 'events' && (
+            <EventView selectedDate={selectedDate} changeWork={() => setWork('todo')}/>
+          )}
+          {work === 'todo' && (
+            <div>
+              <TodoView selectedDate={selectedDate} changeWork={() => setWork('events')}/>
+            </div>
+          )}
+        </div>
+        
+        {help === 'help' && (
+            <Help setBack={() => setHelp('nohelp')} />
         )}
 
-        {view === 'day' && (
-          <div className='bg-gradient-to-br from-black via-gray-900 to-black text-gray-200'>
-            <DayView selectedDate={selectedDate} onBack={() => setView('calendar')} />
-          </div>
-        )}
       </div>
-      <div className='w-1/3 h-screen'>
-        <EventView selectedDate={selectedDate}/>
-      </div>
-    </div>
     </>
   );
 };

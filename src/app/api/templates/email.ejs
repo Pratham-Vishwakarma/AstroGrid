@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= templateTitle %></title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; color: #333;">
+    <table style="width: 100%; border-spacing: 0;">
+        <!-- Header Section -->
+        <tr style="background-color: #173c69; color: white; height: 70px;">
+            <th style="text-align: center; padding: 10px;">
+                <span style="font-size: 1.6rem; font-weight: bold;">
+                    <%= emailTitle %>
+                </span><br>
+                <small style="font-size: 1rem;">Calender App</small>
+            </th>
+        </tr>
+        <!-- Body Section -->
+        <tr>
+            <td style="padding: 20px;">
+                <p>Dear Calender App Team,</p>
+                <p>You have received a new email from:</p>
+                <ul style="list-style-type: none; padding: 0;">
+                    <li><strong>Name:</strong> <%= name %></li>
+                    <li><strong>Email:</strong> <%= useremail %></li>
+                    <li><strong>Rating:</strong> <%= rating %></li>
+                </ul>
+                <p><strong>Message:</strong> <%= message %></p>
+                <p>If further clarification is needed, please reply to the email or contact the sender at the phone number provided above.</p>
+                <p>Thank you!</p>
+            </td>
+        </tr>
+        <!-- Footer Section -->
+        <tr style="background-color: #173c69; color: white; height: 70px;">
+            <th style="text-align: center; padding: 10px;">
+                &copy; <%= new Date().getFullYear() %> Calender App. All rights reserved.
+            </th>
+        </tr>
+    </table>
+</body>
+</html>
